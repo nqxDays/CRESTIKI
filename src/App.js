@@ -8,41 +8,42 @@ function Square({ value, onSquareClick }) {
   );
 }
 
-function Board({ xIsNext, squares, onPlay }) {
+function Board({ xIsNext, squares, onPlay, playerX, playerO }) {
   function handleClick(i) {
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
+    if (calculateWinner(squares) || squares[i]) return;
+
     const nextSquares = squares.slice();
-    if (xIsNext) {
-      nextSquares[i] = "X";
-    } else {
-      nextSquares[i] = "O";
-    }
+    nextSquares[i] = xIsNext ? "X" : "O";
     onPlay(nextSquares);
   }
 
   const winner = calculateWinner(squares);
   let status;
+
   if (winner) {
-    status = "Winner: " + winner;
+    status = "Winner: " + (winner === "X" ? playerX : playerO);
   } else {
-    status = "Next player: " + (xIsNext ? "X" : "O");
+    status =
+      "Next player: " +
+      (xIsNext ? `${playerX} (X)` : `${playerO} (O)`);
   }
 
   return (
     <>
       <div className="status">{status}</div>
+
       <div className="board-row">
         <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
         <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
         <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
       </div>
+
       <div className="board-row">
         <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
         <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
         <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
       </div>
+
       <div className="board-row">
         <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
         <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
@@ -55,11 +56,20 @@ function Board({ xIsNext, squares, onPlay }) {
 export default function Game() {
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [currentMove, setCurrentMove] = useState(0);
+
+  // форма
+  const [playerX, setPlayerX] = useState("");
+  const [playerO, setPlayerO] = useState("");
+  const [isGameStarted, setIsGameStarted] = useState(false);
+
   const xIsNext = currentMove % 2 === 0;
   const currentSquares = history[currentMove];
 
   function handlePlay(nextSquares) {
-    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    const nextHistory = [
+      ...history.slice(0, currentMove + 1),
+      nextSquares,
+    ];
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
   }
@@ -68,25 +78,62 @@ export default function Game() {
     setCurrentMove(nextMove);
   }
 
-  const moves = history.map((squares, move) => {
-    let description;
-    if (move > 0) {
-      description = "Go to move #" + move;
-    } else {
-      description = "Go to game start";
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (playerX && playerO) {
+      setIsGameStarted(true);
     }
+  }
+
+  const moves = history.map((squares, move) => (
+    <li key={move}>
+      <button onClick={() => jumpTo(move)}>
+        {move > 0 ? "Go to move #" + move : "Go to game start"}
+      </button>
+    </li>
+  ));
+
+  // показ форми
+  if (!isGameStarted) {
     return (
-      <li key={move}>
-        <button onClick={() => jumpTo(move)}>{description}</button>
-      </li>
+      <form onSubmit={handleSubmit}>
+        <h2>Enter players</h2>
+
+        <input
+          type="text"
+          placeholder="Player X"
+          value={playerX}
+          onChange={(e) => setPlayerX(e.target.value)}
+        />
+
+        <input
+          type="text"
+          placeholder="Player O"
+          value={playerO}
+          onChange={(e) => setPlayerO(e.target.value)}
+        />
+
+        <button type="submit">Start Game</button>
+      </form>
     );
-  });
+  }
 
   return (
     <div className="game">
+      <h2>
+        {playerX} (X) vs {playerO} (O)
+      </h2>
+
       <div className="game-board">
-        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+        <Board
+          xIsNext={xIsNext}
+          squares={currentSquares}
+          onPlay={handlePlay}
+          playerX={playerX}
+          playerO={playerO}
+        />
       </div>
+
       <div className="game-info">
         <ol>{moves}</ol>
       </div>
@@ -105,11 +152,17 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6],
   ];
+
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+    if (
+      squares[a] &&
+      squares[a] === squares[b] &&
+      squares[a] === squares[c]
+    ) {
       return squares[a];
     }
   }
+
   return null;
 }
